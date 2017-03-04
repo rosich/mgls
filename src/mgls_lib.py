@@ -42,7 +42,8 @@ def plot(t, y, t2, y2, err, max_peak, fap_thresholds, trended):
     
     plt.xlim((t[0],t[-1]))
     
-    ax1.fill_between(t, y, 0, color='rosybrown', facecolor='rosybrown', alpha=0.75)
+    
+    ax1.fill_between(t, y, 0, color='rosybrown', alpha=1.0)
 
     if fap_thresholds != []:
         print "FAP levels encountered"
@@ -60,7 +61,7 @@ def plot(t, y, t2, y2, err, max_peak, fap_thresholds, trended):
 def _gls_instance(period_range):
     """runs an instance of GLS for a range of periods [p_min, p_max]
     """
-    p_step = 0.001
+    p_step = 0.005
     n_iter = int((period_range[1] - period_range[0])/p_step)
     periods = [period_range[0]+j*p_step for j in range(n_iter)] #period array
 

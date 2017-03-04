@@ -119,7 +119,7 @@ if __name__ == '__main__':
     #mgls_io.write_file_onecol('t_separation.dat', separation, ' ','')
     
     #periods to scan
-    Globals.period_range = [0.5, 500.0]
+    Globals.period_range = [1.0, 5000.0]
     Globals.freq_range = [1./Globals.period_range[1], 1./Globals.period_range[0]]
     #AR process tau
     Globals.params = [1.5]
