@@ -17,7 +17,7 @@ In folder ./data there is a real time series of GJ581, containing 240 points (BJ
 In order to compute genuine GLS periodogram (with matplotlib graphical output)
 
     ./mgls.py ./data/GJ581_240.dat --gls
-![Alt text](mgls/GJ581.png "GJ581")
+![Alt text](https://github.com/rosich/mgls/blob/master/GJ581.png "GJ581")
 
 To compute MGLS the dimensionality needs to be indicated:
 
