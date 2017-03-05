@@ -12,7 +12,7 @@ Multidimensional Generalized Lomb-Scargle Periodogram
     ./mgls.py <data_file_path> --options
     
 ### Example
-In folder ./data there is a real time series of GJ581, containing 240 points (BJD, RV, RV_err) 
+In folder ./data there is a real time series of HD10180, containing 190 points (BJD, RV, RV_err) 
 
 In order to compute genuine GLS periodogram (with matplotlib graphical output)
 
