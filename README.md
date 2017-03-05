@@ -19,7 +19,7 @@ In order to compute genuine GLS periodogram (with matplotlib graphical output)
     ./mgls.py ./data/HD10180.dat --gls
 ![Alt text](https://github.com/rosich/mgls/blob/master/HD10180.png "HD10180")
 
-To compute MGLS the dimensionality needs to be indicated:
+To run MGLS (fitting multiple frequencies simultaneously) the dimensionality needs to be indicated:
 
     ./mgls.py ./data/HD10180.dat --ndim=7
     
