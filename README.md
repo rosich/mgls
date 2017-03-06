@@ -3,11 +3,11 @@ Multidimensional Generalized Lomb-Scargle Periodogram
 
 ## Dependences (tested)
 
--Python 2.7+
--numpy 1.7+
--matplotlib 1.4+
--gfortran compiler
--Lapack library
+* Python 2.7+
+* numpy 1.7+
+* matplotlib 1.4+
+* gfortran compiler
+* Lapack library
 
 ## Basic Usage
 
