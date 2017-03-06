@@ -1,6 +1,14 @@
 # MGLS
 Multidimensional Generalized Lomb-Scargle Periodogram
 
+## Dependences (tested)
+
+-Python 2.7+
+-matplotlib 1.4+
+-gfortran compiler
+-Lapack library
+-
+
 ## Basic Usage
 
 ### Compile Fortran numerical modules (gfortran compiler must be installed on your system)
