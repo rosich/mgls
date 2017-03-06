@@ -7,7 +7,7 @@ Multidimensional Generalized Lomb-Scargle Periodogram
 * numpy 1.7+
 * matplotlib 1.4+
 * gfortran compiler
-* Lapack library
+* Lapack library (fast linear algebra routines)
 
 ## Basic Usage
 
