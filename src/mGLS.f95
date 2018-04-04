@@ -95,7 +95,6 @@ subroutine gls_pow(t, y, err, periods, t_ref, periodogram)
 
 end subroutine gls_pow
 
-
 subroutine chi2(t, y, err, t_ref, max_pwr, chi2_out)
 !   computes chi2 between data and a*coswt + b*sinwt c model
     double precision, intent(in) :: t(:), y(:), err(:)
@@ -121,7 +120,6 @@ subroutine chi2(t, y, err, t_ref, max_pwr, chi2_out)
 
 end subroutine chi2
 
-
 subroutine chi2_0(y, err, chi2_0_out)
 !   computes chi2 between data and a*coswt + b*sinwt c model
     double precision, intent(in) :: y(:), err(:)
@@ -142,7 +140,6 @@ subroutine chi2_0(y, err, chi2_0_out)
 97  continue
 
 end subroutine chi2_0
-
 
 
 
