@@ -26,6 +26,12 @@ Multidimensional Generalized Lomb-Scargle Periodogram
     --period            :: [to be used with gls option] plot GLS periodogram in period log-scale.
     --ndim=             :: number of signals to be fitted.
     --linear_trend      :: fit a linear trend simultaneously.        
+
+#### Multiset 
+MGLS admits multiple input data sets. The computation yelds in fitting an additional offset parameter (and jitter) for each set which optimizes the overall fit. The datasets could be either different instruments or distinct observational epochs that need to be treated separately. In this case the syntax is: (regular expresions are allowed)
+
+    ./mgls.py <data_file_path_1>  <data_file_path_2>  <data_file_path_n> --option_1 --option_2 --option_n...
+
 ### Example
 In folder ./data/synth_hexa_model.dat there is a simulated time series containing 6 signals, in a 240 points file (BJD, RV, RV_err) 
 
