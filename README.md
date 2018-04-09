@@ -17,12 +17,12 @@ Multidimensional Generalized Lomb-Scargle Periodogram
 
 #### General syntax
 
-    ./mgls.py <data_file_path> --options
+    ./mgls.py <data_file_path> --option_1 --option_2 --option_n...
     
 #### Options available    
     --gls               :: compute and plot unidimensional Generalized Lomb-Scargle periodogram.
-    --pmin= / --pmax=   :: set limits in periods to be explored.
-    --jitter            :: fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2).
+    --pmin= / --pmax=   :: set limits in periods to be explored [in units of data file first column]. Prestablished values are 1.5-10000.
+    --jitter            :: fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2) [in units of data file third column].
     --period            :: [to be used with gls option] plot GLS periodogram in period log-scale.
     --ndim=             :: number of signals to be fitted.
     --linear_trend      :: fit a linear trend simultaneously.        
@@ -33,6 +33,11 @@ In order to compute genuine GLS periodogram (with matplotlib graphical output)
 
     ./mgls.py ./data/synth_hexa_model.dat --gls --period --pmin=1.0 --pmax=3000 --jitter 
 ![Alt text](https://github.com/rosich/mgls/blob/master/hexa_gls.png "hexa")
+
+or plotting in frequency linear-scale
+     
+     ./mgls.py ./data/synth_hexa_model.dat --gls --pmin=1.0 --pmax=3000 --jitter 
+![Alt text](https://github.com/rosich/mgls/blob/master/hexa_gls_f.png "hexa_f")
 
 To run MGLS (fitting multiple frequencies simultaneously) the dimensionality needs to be indicated:
 
