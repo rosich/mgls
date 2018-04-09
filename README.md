@@ -19,15 +19,13 @@ Multidimensional Generalized Lomb-Scargle Periodogram
 
     ./mgls.py <data_file_path> --options
     
-#### Options available
-   
-    --gls               :: Compute and plot unidimensional Generalized Lomb-Scargle periodogram
-    --pmin= / --pmax=   :: Set limits in periods to be explored
-    --jitter            :: Fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2) 
-    --period            :: [to be used with --gls] Plot GLS periodogram in period log-scale 
-    --ndim=             :: Number of signals to be fitted
-    --linear_trend      :: Fit a linear trend simultaneously
-           
+#### Options available    
+    --gls               :: compute and plot unidimensional Generalized Lomb-Scargle periodogram.
+    --pmin= / --pmax=   :: set limits in periods to be explored.
+    --jitter            :: fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2).
+    --period            :: [to be used with gls option] plot GLS periodogram in period log-scale.
+    --ndim=             :: number of signals to be fitted.
+    --linear_trend      :: fit a linear trend simultaneously.        
 ### Example
 In folder ./data/synth_hexa_model.dat there is a simulated time series containing 6 signals, in a 240 points file (BJD, RV, RV_err) 
 
