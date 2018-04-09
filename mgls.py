@@ -59,8 +59,16 @@ def help():
     print "===================================================================="
     print "Example of usage:\n"
     print "./mgls_v2.py [data_file_1] [data_file_2] ... [data_file_n] --ndim=2"
-    
     print "===================================================================="
+    print "OPTIONS:"
+    print ""
+    print "--gls               :: compute and plot unidimensional Generalized Lomb-Scargle periodogram"
+    print "--pmin= / --pmax=   :: set limits in periods to be explored. Prestablished values are 1.5-10000d"
+    print "--jitter            :: fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2)"
+    print "--period            :: [to be used with gls option] plot GLS periodogram in period log-scale"
+    print "--ndim=             :: number of signals to be fitted"
+    print "--linear_trend      :: fit a linear trend simultaneously"
+    print ""
     sys.exit()
     
 def logL_NullModel():
@@ -126,10 +134,10 @@ if __name__ == '__main__':
     Globals.opt_jitters_0 = []
     Globals.pmin, Globals.pmax = 1.5, 10000.0
     Globals.ncpus = mp.cpu_count()
-    options, remainder = getopt.gnu_getopt(sys.argv[1:], 'b:i:g:n:d:s:l:r:v:y:j:m:t:p:q:h',\
+    options, remainder = getopt.gnu_getopt(sys.argv[1:], 'b:i:g:n:d:s:l:r:v:y:j:m:t:p:q:h:x',\
                          ['bidim','inhibit_msg','gls', 'ncpus=' ,\
                          'ndim=', 'bootstrapping=', 'linear_trend','ar=','col=', \
-                         'jitter', 'logL', 'testing', 'pmin=', 'pmax=', 'help'])
+                         'jitter', 'logL', 'testing', 'pmin=', 'pmax=', 'help', 'period'])
     #argument parsing
     for opt, arg in options:
         if opt in ('-n', '--ncpus'):
@@ -164,6 +172,8 @@ if __name__ == '__main__':
             Globals.pmax = float(arg)
         elif opt in ('-h', '--help'):
             Globals.help = True
+        elif opt in ('-x', '--period'):
+            Globals.inPeriods = True
             
     #print init data
     print_heading(Globals.ncpus)
@@ -264,7 +274,7 @@ if __name__ == '__main__':
                 #mgls_io.write_file_onecol('bootstrapping_stats.dat', bootstrapping_stats, ' ', '')
                 print fap(bootstrapping_stats, max_pow[1])
             #plot 1D GLS
-            plot(freqs,pwr,Globals.times_seq,Globals.rvs_seq,Globals.rv_errs_seq,max_pow, fap_thresholds, trended=False)
+            plot(freqs,pwr,Globals.times_seq,Globals.rvs_seq,Globals.rv_errs_seq,max_pow, fap_thresholds)
         
         except:
             sys.stdout, sys.stderr = stdout, stderr
