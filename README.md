@@ -120,10 +120,13 @@ Ouput:
 
 ##### Bidimensional map (HD41248)
 
+The following command plots a bidimensional colour map of a period scan defined in line 324 of file mgls.py 
+
     ./mgls.py ./data/synth_hexa_model.dat --bidim --jitter --linear_trend
     
 ![Alt text](https://github.com/rosich/mgls/blob/master/bidim.png "bidim")
-    
+
+This data corresponds to observations of HD41248. The maximum is located at 18d / 26d.
     
     
 
