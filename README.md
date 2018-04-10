@@ -26,7 +26,19 @@ Multidimensional Generalized Lomb-Scargle Periodogram
     --period            :: [to be used with gls option] plot GLS periodogram in period log-scale.
     --ndim=             :: number of signals to be fitted.
     --linear_trend      :: fit a linear trend simultaneously.        
-### Example
+
+#### Multiset 
+MGLS admits multiple input data sets. The computation yelds in fitting an additional offset parameter (and jitter) for each set which optimizes the overall fit. The datasets could be either different instruments or distinct observational epochs that need to be treated separately. In this case the syntax is: (regular expresions are allowed)
+
+    ./mgls.py <data_file_path_1>  <data_file_path_2>  <data_file_path_n> --option_1 --option_2 --option_n...
+
+#### MGLS Principles of working
+MGLS is a new approach for detecting multiplanetary systems by simultaneous fitting of n-tuple of circular orbits.  
+
+### Examples
+
+#### Simulated data
+##### 1-GLS
 In folder ./data/synth_hexa_model.dat there is a simulated time series containing 6 signals, in a 240 points file (BJD, RV, RV_err) 
 
 In order to compute genuine GLS periodogram (with matplotlib graphical output)
@@ -39,6 +51,7 @@ or plotting in frequency linear-scale
      ./mgls.py ./data/synth_hexa_model.dat --gls --pmin=1.0 --pmax=3000 --jitter 
 ![Alt text](https://github.com/rosich/mgls/blob/master/hexa_gls_f.png "hexa_f")
 
+#### MGLS
 To run MGLS (fitting multiple frequencies simultaneously) the dimensionality needs to be indicated:
 
     ./mgls.py ./data/synth_hexa_model.dat --ndim=6 --pmin=1.0 --pmax=3000 --jitter
@@ -103,4 +116,14 @@ Ouput:
                 logL (model): -500.330890497
                 DlogL (model vs. data): 108.013784199
 
+#### Observational data
+
+##### Bidimensional map (HD41248)
+
+    ./mgls.py ./data/synth_hexa_model.dat --bidim --jitter --linear_trend
     
+    
+    
+    
+
+
