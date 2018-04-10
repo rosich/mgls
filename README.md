@@ -126,7 +126,7 @@ The following command plots a bidimensional colour map of a period scan defined 
     
 ![Alt text](https://github.com/rosich/mgls/blob/master/bidim.png "bidim")
 
-This data corresponds to observations of HD41248. The maximum is located at 18d / 26d.
+This data corresponds to observations of HD41248. The maximum is located at 18.4 d / 25.5 d
     
     
 
