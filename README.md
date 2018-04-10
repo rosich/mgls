@@ -122,6 +122,7 @@ Ouput:
 
     ./mgls.py ./data/synth_hexa_model.dat --bidim --jitter --linear_trend
     
+    ![Alt text](https://github.com/rosich/mgls/blob/master/bidim.png "bidim")
     
     
     
