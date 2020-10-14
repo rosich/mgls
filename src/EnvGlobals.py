@@ -17,7 +17,7 @@ class Globals(object):
     ncpus = 0
     period_range = []
     freq_range = []
-    ndim = 0
+    ndim = 1
     col = 1
     freq_test = False
     init_step = 0
@@ -27,4 +27,7 @@ class Globals(object):
     rvs = []
     rv_errs = []
     help = False
+    inPeriods = False
+    log_scale = False
+    mcmc = False
     

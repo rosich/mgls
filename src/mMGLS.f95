@@ -40,7 +40,6 @@ subroutine mdim_gls(t, y, err, freqs, t_ref, coeffs, A)
     A = matmul(Ft,F)
     b = matmul(Ft,y_err)
     !solves a system of linear equations A*X = B 
-    !call DPOTRS('L', n_dim, 1, A, n_dim, b, n_dim, LS_INFO)
     call SGESV(2*n_dim+1, 1, A, 2*n_dim+1, pivot, b, 2*n_dim+1, LS_INFO)
     !fill output vector: fitting coeffs.
     do i = 1,2*n_dim+1
