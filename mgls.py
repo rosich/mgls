@@ -55,6 +55,7 @@ import mgls_genetic
 from EnvGlobals import Globals
 import scipy.optimize
 import copy
+import decimal
 
 def help():
     """Help
@@ -110,7 +111,7 @@ def logL_NullModel():
         opt_jitters = opt_state[:] #ndim=0
         """
         Globals.logL_0 = logL
-        #reestablish dimensionality
+        #restablish dimensionality
         Globals.ndim = ndim
         Globals.inhibit_msg = False
     
@@ -125,6 +126,132 @@ def logL_NullModel():
     
     return Globals.logL_0
 
+def log_prior(theta):
+    """
+    """
+    for j in range(len(theta)-Globals.n_sets):
+        if not (0.99*opt_state[j] < theta[j] < 1.01*opt_state[j]):
+            return -np.inf
+    return 0.0
+        
+def log_probability(theta):
+    """
+    """ 
+    try:
+        pwr, fitting_coeffs, A, logL = mgls_multiset(theta)
+        lp = log_prior(theta)
+        if not np.isfinite(lp):
+            return -np.inf
+
+        return logL + lp
+    
+    except:
+        return -np.inf
+
+def run_mcmc(opt_state):
+    """
+    """
+    try:
+        import emcee
+    
+    except ImportError:
+        print "emcee package must be installed on your computer"
+        sys.exit()
+    
+    mcmc_dim = len(opt_state)
+    walkers = 64
+    #setting initial points
+    pos = opt_state + (opt_state * 1e-5*np.random.randn(walkers, mcmc_dim))
+    nwalkers, mcmc_dim = pos.shape
+    
+    sampler = emcee.EnsembleSampler(nwalkers, mcmc_dim, log_probability, args=())
+    sampler.run_mcmc(pos, 1500, progress=True);
+    
+    flat_samples = sampler.get_chain(discard=100, thin=10, flat=True)
+    
+    return flat_samples
+
+def build_model(theta):
+    """
+    """
+    freqs, jitters = list(theta[:Globals.ndim]), list(theta[Globals.ndim:])
+    #add a frequency
+    #freqs_add = random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0])
+    #freqs.append(1./550.0)
+    
+    theta = freqs + jitters
+    #solve the linear part
+    pwr, fitting_coeffs, A, logL = mgls_multiset(theta)
+    
+    #fitting coeffs for each dataset
+    fitting_coeffs_set = np.array(fitting_coeffs[Globals.n_sets-1:])
+    
+    logL = 0.0
+    for i in range(Globals.n_sets):
+        fitting_coeffs_set[0] = fitting_coeffs[i] #append constant
+        #print fitting_coeffs_set
+        #compute model for (i) dataset
+        model = mMGLS.model_series(Globals.times[i], Globals.times[0][0], freqs, fitting_coeffs_set, len(Globals.times[i])) 
+        #noise = np.sqrt(Globals.rv_errs[i]**2 + np.array(jitters[i]**2))*np.random.randn(len(model))
+        inv_sigma2 = 1.0/(Globals.rv_errs[i]**2.0 + jitters[i]**2.0)
+        #add logL for dataset (i)
+        logL += -0.5*(np.sum(((Globals.rvs[i] - model)**2)*inv_sigma2 + np.log(2.0*np.pi) - np.log(inv_sigma2))) 
+        
+    return logL
+
+def build_dual_model(theta_0, theta):
+    """computes DeltaLogL(theta_0, theta)
+    """
+    #base model parameters
+    #freqs_0, jitters_0 = theta_0[:Globals.ndim], theta_0[Globals.ndim:]
+    #evolved model parameters
+    #freqs, jitters = theta[:Globals.ndim+1], theta[Globals.ndim+1:]
+    #solve the linear part (base)
+    pwr_0, fitting_coeffs_0, A_0, logL_0 = mgls_multiset(theta_0)
+
+    #solve the linear part (evolved)
+    Globals.ndim += 1
+    pwr, fitting_coeffs, A, logL = mgls_multiset(theta)
+    Globals.ndim -= 1
+    
+    return (logL - logL_0)
+
+def build_dual_model_(theta_0, theta):
+    """computes DeltaLogL(theta_0, theta)
+    """
+    #base model parameters
+    #freqs_0, jitters_0 = theta_0[:Globals.ndim], theta_0[Globals.ndim:]
+    #evolved model parameters
+    #freqs, jitters = theta[:Globals.ndim+1], theta[Globals.ndim+1:]
+    #solve the linear part (base)
+    pwr_0, fitting_coeffs_0, A_0, logL_0 = mgls_multiset(theta_0)
+
+    #solve the linear part (evolved)
+    Globals.ndim += 1
+    pwr, fitting_coeffs, A, logL = mgls_multiset(theta)
+    Globals.ndim -= 1
+    
+    return logL - opt_logL_0
+
+def delta_log_probability(theta_block):
+    """    
+    """
+    base_dim = Globals.ndim
+    evol_dim = base_dim + 1
+    
+    theta_0 = theta_block[:base_dim+Globals.n_sets]
+    theta = theta_block[base_dim+Globals.n_sets:]
+ 
+    DlogL = build_dual_model(theta_0, theta)
+    print DlogL
+    lp = log_prior(theta_block)
+    if not np.isfinite(lp):
+        return -np.inf
+    
+    return DlogL + lp
+
+ 
+            
 if __name__ == '__main__':
     """main program
     """
@@ -145,13 +272,14 @@ if __name__ == '__main__':
     Globals.n_bootstrapping = 50
     Globals.multiset = False
     Globals.opt_jitters_0 = []
-    Globals.pmin, Globals.pmax = 2.5, 10000.0
+    Globals.pmin, Globals.pmax = 1.5, 10000.0
     Globals.ncpus = mp.cpu_count()
     
-    options, remainder = getopt.gnu_getopt(sys.argv[1:], 'b:i:g:n:d:s:l:r:v:y:j:m:t:p:q:h:x:a:e',\
+    options, remainder = getopt.gnu_getopt(sys.argv[1:], 'b:i:g:n:d:s:l:r:v:y:j:m:t:p:q:h:x:a:e:w:',\
                          ['bidim','inhibit_msg','gls', 'ncpus=' ,\
                          'ndim=', 'bootstrapping=', 'linear_trend','ar=','col=', \
-                         'jitter', 'logL', 'testing', 'pmin=', 'pmax=', 'help', 'period','log_scale','errors','km2m'])
+                         'jitter', 'logL', 'multidim_significances', 'pmin=', 'pmax=', 'help', \
+                         'period','log_scale','grid_search','km2m','testing', 'mcmc'])
     #argument parsing
     for opt, arg in options:
         if opt in ('-n', '--ncpus'):
@@ -178,8 +306,8 @@ if __name__ == '__main__':
             Globals.logL = True
         elif opt in ('-j', '--jitter'):
             Globals.jitter = True
-        elif opt in ('-t', '--testing'):
-            Globals.testing = True
+        elif opt in ('-t', '--multidim_significances'):
+            Globals.multidim_significances = True
         elif opt in ('-p', '--pmin'):
             Globals.pmin = float(arg)
         elif opt in ('-q', '--pmax'):
@@ -190,16 +318,23 @@ if __name__ == '__main__':
             Globals.inPeriods = True
         elif opt in ('-a', '--log_scale'):
             Globals.log_scale = True
-        elif opt in ('-e', '--errors'):
-            Globals.errors = True
+        elif opt in ('-e', '--grid_search'):
+            Globals.grid_search = True
         elif opt in ('--km2m'):
             Globals.km2m = True
+        elif opt in ('--testing'):
+            Globals.testing = True
+        elif opt in ('--mcmc'):
+            Globals.mcmc = True
+        elif opt in ('--chi2'):
+            Globals.chi2 = True
             
     #print init data
     print_heading(Globals.ncpus)
     #periods to scan
     Globals.period_range = [Globals.pmin, Globals.pmax]  #(days)
     Globals.freq_range = [1./Globals.period_range[1], 1./Globals.period_range[0]]
+ 
     
     if Globals.help or len(sys.argv) == 1:
         """usage info
@@ -266,13 +401,12 @@ if __name__ == '__main__':
                 print "\tp-value:", lt_params[s][3]
    
     #try:
-        #compute logL_0 of data (model 0)   
+    #compute logL_0 of data (model 0)   
     logL_NullModel()
     #except:
         #print ("Something went wrong when computing logL null model")
         #sys.exit()
         
-    
     #////////////////////////////////////////////////////////////////////////////////////
     #OPTION SELECTION
     #///////////////////////////////////////////////////////////////////////////////////
@@ -283,12 +417,17 @@ if __name__ == '__main__':
         #GLS (1-D)
         try:
             fap_thresholds = list()  #initialization of FAP list
-            file_out = []
+            freqs_out = []
             #logL 1-D plot
-            freqs, pwr, max_pow = gls_1D()
-            for j in range(len(freqs)): file_out.append([freqs[j], pwr[j]])
-            #mgls_io.write_file('gls_periodogram.ascii', file_out, ' ', '')
-        
+            freqs, pwr, max_pow, fitting_coeffs = gls_1D()
+            
+            for i in range(len(freqs)):
+                freqs_out.append([i,i,pwr[i]])
+            
+            mgls_io.write_file('gls_freqs.dat', freqs_out, ' ', '')
+            
+            #print "std(data):", np.std(Globals.rvs_seq)
+            
         #bootstrapping stats
             if Globals.bootstrapping:
                 logL_0 = Globals.logL_0
@@ -300,7 +439,7 @@ if __name__ == '__main__':
                 print "Bootstrapping..."
                 max_peaks = mgls_mc.bootstrapping_1D(Globals.n_bootstrapping)
                 mgls_io.write_file_onecol('FAP_' + str(int(random.uniform(0,10000))) + '.dat', max_peaks, ' ', '')
-                
+
                 #print np.mean(max_peaks), np.std(max_peaks), np.mean(max_peaks) + 3.*np.std(max_peaks)
                 fap_thresholds = fap_levels(max_peaks)
                 print ""
@@ -309,21 +448,35 @@ if __name__ == '__main__':
                 
                 Globals.rvs_seq, Globals.rv_errs_seq = G_rv, G_rv_errs
                 Globals.logL_0 = logL_0
-            
+                
+            file_out = []
             #plot 1D GLS
-            peaks = peak_counter(freqs, pwr)
-            print "Independent frequencies found (peaks):", len(peaks)
-            plot(freqs, pwr, Globals.times_seq, Globals.rvs_seq, Globals.rv_errs_seq, max_pow, fap_thresholds, peaks[:1])
+            peaks = peak_counter(freqs, pwr, fitting_coeffs)
+            print "Peaks found:", len(peaks)
+            for jj in range(len(peaks)): #higher peaks
+                file_out.append([0,0, peaks[jj][1]])
+            mgls_io.write_file('gls_peaks.dat', file_out, ' ', '')
+            
+            periodogram = []
+            for i in range(len(pwr)):
+                periodogram.append([freqs[i], pwr[i]])
+            mgls_io.write_file('periodogram.dat', periodogram, ' ', '')
+            
+            plot(freqs, pwr, Globals.times_seq, Globals.rvs_seq, Globals.rv_errs_seq, max_pow, fap_thresholds, fitting_coeffs, peaks[:2])
             
         except:
             sys.stdout, sys.stderr = stdout, stderr
             raise
-  
+
+
     elif Globals.bidim_plot:
         """
         """ 
-        p_min_x, p_max_x = 10.0, 30.0 #4.8, 5.1
-        p_min_y, p_max_y = 10.0, 30.0#10.6, 12.2
+        p_min_x, p_max_x = 4.6, 200.0
+        p_min_y, p_max_y = 4.6, 200.0
+        
+        #p_min_x, p_max_x = 20.0, 500.0
+        #p_min_y, p_max_y = 20.0, 150.0
         
         freqs_0 = []
         Globals.ndim = len(freqs_0) + 2
@@ -363,8 +516,8 @@ if __name__ == '__main__':
                      np.concatenate( (pylab.linspace(1./2.0, 1./100.0, 50),pylab.linspace(1./100.0, 1./10000.0, 950)) ) 
                      )
             """
-            aa, bb = pylab.meshgrid( pylab.linspace(1./p_min_x, 1./p_max_x, 700), 
-                                     pylab.linspace(1./p_min_x, 1./p_max_y, 700)
+            aa, bb = pylab.meshgrid( pylab.linspace(1./p_min_x, 1./p_max_x, 1500), 
+                                     pylab.linspace(1./p_min_x, 1./p_max_y, 1500)
                      )
             
             # fill a matrix with the function values
@@ -410,16 +563,20 @@ if __name__ == '__main__':
                             logL += -0.5*(np.sum(((Globals.rvs[s] - model)**2)*inv_sigma2_set + np.log(2.0*np.pi) + np.log(1.0/inv_sigma2_set)) )
                     
                         pwr = -(logL_0 - logL)
-                        #no negative delta logL are allowed (do to significance of K)
-                        if pwr < 0.0: pwr = 0.0
+                        #no negative delta logL are allowed. do to significance of K
                         
+                        if pwr < 0.0:
+                            pwr = 0.0
+                             
                         if pwr < min_pwr:
                             min_pwr = pwr
-
+                           
                         zz[i,j] = pwr
                         #symmetric part
                         zz[j,i] = pwr
                         
+                            
+                      
         
             #diagonal            
             for i in range(bb.shape[0]):
@@ -502,25 +659,26 @@ if __name__ == '__main__':
             sys.stdout, sys.stderr = stdout, stderr
             raise
                 
-    elif Globals.testing:
+    elif Globals.multidim_significances:
         """testing zone
         """
         
         print_message("\nNoise analysis running...", 3, 31)
         Globals.inhibit_msg = True
-        DIM_MAX = 5
+        INIT_DIM = 2
+        DIM_MAX = 4
    
         rvs_seq, rv_errs_seq = copy.deepcopy(Globals.rvs_seq), copy.deepcopy(Globals.rv_errs_seq)
         rvs_cp, rv_errs_cp = copy.deepcopy(Globals.rvs), copy.deepcopy(Globals.rv_errs)
         
-        for init_dim in range(0,DIM_MAX):
+        for init_dim in range(INIT_DIM,DIM_MAX):
             #init dimension
             Globals.ndim = init_dim
             print "Current dim.", Globals.ndim
             #load_multiset_data()
         
             #find the periodicities for a given dimensionality 
-            opt_state = mgls_mc.parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=96)
+            opt_state = mgls_mc.parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=64)
             print "Periods found:", 1./opt_state[:Globals.ndim]   
             #compute coefficients and A matrix, given the optimal configuration        
             pwr, fitting_coeffs_base, A, logL = mgls_multiset(opt_state)
@@ -537,73 +695,233 @@ if __name__ == '__main__':
             
             Globals.rvs_seq, Globals.rv_errs_seq = rvs_seq[:], rv_errs_seq[:]
             Globals.rvs, Globals.rv_errs = rvs_cp[:], rv_errs_cp[:] 
-   
-            
-    elif Globals.errors:
-        """Estimate the uncertainties in period by bootstrap (Efron, 1982) method
+               
+    elif Globals.grid_search:
+        """MGLS optimisation by frequency grid exhaustive search
         """
-        def sigma_clipping(vector, sigma_inf, sigma_sup):
-            """
-            """
-            vector = np.array(vector)
-            mean = np.mean(vector, axis=0)
-            std = np.std(vector, axis=0)
-            print "clipping params:", mean, std
-            clipped = []
-            for i in range(len(vector)):
-                for j in range(len(vector[0])):
-                    if not (mean[j]-sigma_inf*std[j] < vector[i][j] < mean[j]+sigma_sup*std[j]):
-                        break
-                clipped.append(vector[i])
-                        
-            return clipped
+        print "std(data):", np.std(Globals.rvs_seq)
         
-        bootstrap_samples = []
-        Globals.inhibit_msg = True
-        rvs_0 = copy.deepcopy(Globals.rvs)
+        maxs = []
+        for j in range(100):
+            L = []
+            for i in range(100000):
+                X, Y = random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0]), random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0])
+                pwr, fitting_coeffs, A, logL = mgls_multiset_jitter_search([X,Y])
+                L.append(logL-Globals.logL_0)    
+            maxs.append([0,0,max(L)])
         
-        #mean_sigma = sqrt(np.mean(np.array(Globals.rv_errs)**2))
-        mean_sigma = np.mean(np.array(Globals.rv_errs_seq))
-        #iterate
-        for k in range(500):
-            #resample data array
-            logL_sample = 0.0
-            for j in range(Globals.n_sets):
-                for i in range(len(Globals.rvs[j])):
-                    Globals.rvs[j][i] += random.gauss(0.0, mean_sigma)
+        mgls_io.write_file('rand_search.tmp', maxs, ' ', '')
+        """
+        freqs = np.linspace(1./Globals.period_range[1], 1./Globals.period_range[0], 100)
+        
+        pows = []
+        for x in range(len(freqs)):
+            for y in range(x, len(freqs)):
+                pwr, fitting_coeffs, A, logL = mgls_multiset_jitter_search([freqs[x], freqs[y]])
+                pows.append([freqs[x], freqs[y], logL - Globals.logL_0])
 
-            #optimize frequency tuple
-            opt_state = mgls_mc.parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=8)
-            #compute coefficients and A matrix, given the optimal configuration        
-            pwr, fitting_coeffs, A, logL = mgls_multiset(opt_state)
-            #select the periods
-            opt_freqs = opt_state[:Globals.ndim]
-            #sort descendent
-            opt_freqs = np.sort(opt_freqs)
-            
-            if Globals.jitter:
-                opt_jitters = opt_state[:Globals.n_sets]
-                print 1./opt_freqs#, opt_jitters, fitting_coeffs, logL
-            else:
-                print 1./opt_freqs, logL
+        #print len(pows), max([sublist[-1] for sublist in pows])
+        mgls_io.write_file('grid_search.tmp', [[0,0,max([sublist[2] for sublist in pows])]], ' ', '')
+        """
+        
+    elif Globals.testing:
+        """
+        """
+        import pylab
+        import matplotlib.pyplot as plt
+        import matplotlib
+        import matplotlib.colors as colors
+        import scipy as sp
+        import scipy.ndimage
+        
+        data_arr = []
+        
+        # define the grid over which the function should be plotted (xx and yy are matrices)
+        aa, bb = pylab.meshgrid(
+                np.linspace(1./3000., 1./1.5, 20),
+                np.linspace(0.0, 4.0, 20) 
+                )
+   
+        # fill a matrix with the function values
+        zz = pylab.zeros(aa.shape)
+        
+        for ii in range(aa.shape[0]):
+            for jj in range(bb.shape[0]):
+                try:
+                    period = 1./aa[0,ii]
+                    amplitude = bb[jj,0]
+                    rvs_seq, rv_errs_seq = copy.deepcopy(Globals.rvs_seq), copy.deepcopy(Globals.rv_errs_seq)
+                    rvs_cp, rv_errs_cp = copy.deepcopy(Globals.rvs), copy.deepcopy(Globals.rv_errs)
+                    a = random.uniform(0.0, amplitude)
+                    b = sqrt(amplitude**2 - a**2)
+                    #new model
+                    gen_synthetic_model([period], [a,b,0.0], [0.0])
+                    #optimize frequency tuple
+                    Globals.inhibit_msg = True  
+                    #compute logL_0 of data (model 0) 
+                    Globals.ndim = 0
+                    opt_state_0 = mgls_mc.parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=4)
+                    pwr, fitting_coeffs, A, logL_0 = mgls_multiset(opt_state_0)
+                    Globals.ndim = 1
+                    opt_state_b = mgls_mc.run_MGLS(Globals.ncpus, N_CANDIDATES=4)
+                    #compute coefficients and A matrix, given the optimal configuration        
+                    pwr, fitting_coeffs, A, logL_b = mgls_multiset(opt_state_b)
+                    #write data
+                    data_arr.append([period, amplitude, logL_b-logL_0])
+                    print period, 1./opt_state_b[0], amplitude, logL_b-logL_0
+                    
+                    Globals.rvs_seq, Globals.rv_errs_seq = rvs_seq[:], rv_errs_seq[:]
+                    Globals.rvs, Globals.rv_errs = rvs_cp[:], rv_errs_cp[:]
+                    
+                    delta_logL = logL_b - logL_0
+                    
+                    if delta_logL >= 0.0:
+                        zz[jj,ii] = delta_logL
+                    else:
+                        zz[jj,ii] = 0.0
                 
-            #bootstrap_samples.append([1./opt_freqs, opt_jitters, fitting_coeffs, logL])
-            bootstrap_samples.append(1./opt_freqs)
-            #restablish original values
-            Globals.rvs = []
-            Globals.rvs = copy.deepcopy(rvs_0)
-        
-            
-        mgls_io.write_file('samples_teegarden_test_visnir' + '.dat', bootstrap_samples, ' ', '')
+                except:
+                    zz[jj,ii] = delta_logL
+                    
+        zz_ = sp.ndimage.filters.gaussian_filter(zz, sigma=1.0, mode='reflect')
     
-    elif Globals.mcmc:
-        """
-        """
+        plt.rcParams.update({'font.size': 16})
+        plt.rcParams["figure.figsize"] = [9,8]
+        fig = pylab.figure(1, tight_layout=True)
+    
+        cm = plt.cm.get_cmap('jet') #cmap='afmhot_r'YlOrBr
+        # plot the calculated function values
+        #pylab.pcolor(aa, bb, zz, cmap=cm, norm=colors.PowerNorm(gamma=1./1.15))
+        pylab.contourf(1./aa, bb, zz_, 25, cmap='jet', alpha=1)
+        # and a color bar to show the correspondence between function value and color
+        pylab.colorbar()
+        contours = plt.contour(1./aa, bb, zz_, levels = [15.5], colors=('y',), linestyles=('-',), linewidths=(1,))
+        #contours = pylab.contour(1./aa, bb, zz, 6, colors='black', linewidths=0.45)
+        #pylab.plot(Y1,X,'k-')
+        #pylab.plot(Y2,X,'k-')
+        #pylab.contourf(aa_, bb_, zz_, 35, cmap='gist_gray', alpha=0.15)
         
+        pylab.clabel(contours, inline=True, fontsize=12)
+        #pylab.imshow(aa, bb, zz, cmap='YlOrBr', alpha=0.5)
+        #comma separated BJD
+        pylab.ticklabel_format(useOffset=False)
+        #comma separated BJD
+        #pylab.get_xaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+
+        plt.xscale('log')
+        
+        pylab.xlabel("Period (days)")
+        pylab.ylabel("Amplitude (m/s)")
+        #save .png
+        #pylab.savefig('active_longitudes.png', dpi=1200)
+        
+        pylab.show()
+                
+                
+        
+        
+        
+        """
+        L = []
+        for i in range(10):
+            rnd_state = [random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0]) for iter in range(Globals.ndim)]
+        
+        #if mgls_mc.state_good_mod(rnd_state, Globals.ndim, Globals.period_range):
+            pwr, fitting_coeffs, A, logL = mgls_multiset_jitter_search(rnd_state)
+            if logL - Globals.logL_0 > 0.0 and logL - Globals.logL_0 < 1000.0:
+                L.append([0,0, logL - Globals.logL_0])
+    
+        mgls_io.write_file('sampling.tmp', L, ' ', '')
+    
+        
+        if not Globals.jitter: 
+                jitters = [0.0 for iter in range(Globals.n_sets)]
+        
+        L = []
+        for i in range(100):
+            rnd_state = [random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0]) for iter in range(Globals.ndim)]
+            #rnd_state[0] = 0.2
+            if mgls_mc.state_good_mod(rnd_state, Globals.ndim, Globals.period_range):
+                pwr, fitting_coeffs, A, logL = mgls_multiset_jitter_search(rnd_state)
+                L.append([0,0, logL - Globals.logL_0])
+    
+        mgls_io.write_file('sampling.tmp', L, ' ', '')
+        """
+        """
+        counter = 0
+        C = 0
+        max_logL = -np.inf
+        
+        while(1):
+            #gen random state
+            rnd_state = [random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0]) for iter in range(Globals.ndim)]
+            
+            if mgls_mc.state_good_mod(rnd_state, Globals.ndim, Globals.period_range):
+                #pwr, fitting_coeffs, A, logL = mgls_multiset_jitter_search(rnd_state)
+                pwr, fitting_coeffs, A, logL = mgls_multiset(rnd_state)
+                DlogL = logL - Globals.logL_0
+                if DlogL > max_logL: max_logL = DlogL
+                if DlogL > 22.0:
+                    print "Ended having iterated", counter, "times!"
+                    C += 1
+                    print C
+                else:
+                    counter += 1
+                    if counter % 100000 == 0: print "Tested:", counter, "Max:", max_logL
+        
+        """
+        """
+        """
+        """
+        try:
+            import emcee
+
+        except ImportError:
+            print "emcee package must be installed on your computer"
+            sys.exit()
+    
+        #optimize frequency tuple
+        Globals.ndim -= 1
+        opt_state = mgls_mc.run_MGLS(Globals.ncpus, N_CANDIDATES=48)
+        pwr, fitting_coeffs, A, logL_0 = mgls_multiset(opt_state)
+        print "Opt.state:", 1./opt_state[:Globals.ndim]
+        print "Opt. logL:", logL_0
+        Globals.ndim += 1
+        
+        mcmc_dim = len(opt_state)
+        walkers = 64
+        #setting initial points
+        pos = opt_state + (opt_state * 1e-6*np.random.randn(walkers, mcmc_dim))
+        nwalkers, mcmc_dim = pos.shape
+        
+        sampler = emcee.EnsembleSampler(nwalkers, mcmc_dim, log_probability, args=())
+        sampler.run_mcmc(pos, 25000, progress=True);
+        
+        flat_samples = sampler.get_chain(discard=1000, thin=10, flat=True)
+        standard_samples = []
+        
+        for j in range(len(flat_samples)):
+            freqs = [flat_samples[j][i] for i in range(Globals.ndim)]
+            standard_samples.append(freqs)
+    
+        standard_samples = np.array(standard_samples)
+        
+        DlogL = []
+        for i in range(200000):
+            rnd_state = [np.random.uniform(Globals.freq_range[0], Globals.freq_range[1])]
+            #rnd_state = [np.random.uniform(Globals.freq_range[0], Globals.freq_range[1])]
+            pwr, fitting_coeffs, A, logL = mgls_multiset_jitter_search(rnd_state)
+            dlogL = logL - logL_0
+            if dlogL > 0.0:
+                DlogL.append([i,i,dlogL])
+                
+        mgls_io.write_file('multidimensional_DlogL.tmp', DlogL, ' ', '')
+        """
+       
     else:
-        """performs multidimensional standard analysis
+        """performs MGLS standard analysis
         """
-        
+     
         try:
             print_message("\nEvaluating model...", 6,35)
            
@@ -611,7 +929,7 @@ if __name__ == '__main__':
                 jitters = [0.0 for iter in range(Globals.n_sets)]
       
             #optimize frequency tuple
-            opt_state = mgls_mc.run_MGLS(Globals.ncpus, N_CANDIDATES=32)
+            opt_state = mgls_mc.run_MGLS(Globals.ncpus, N_CANDIDATES=56)
             
             #compute coefficients and A matrix, given the optimal configuration        
             pwr, fitting_coeffs, A, logL = mgls_multiset(opt_state)
@@ -621,7 +939,7 @@ if __name__ == '__main__':
             #covariance matrix
             try:
                 cov = covariance_matrix(A)
-            except:
+            except: 
                 print "Cannot compute the covariance matrix. Singular matrix"
                 pass
             
@@ -630,7 +948,7 @@ if __name__ == '__main__':
             for i in range(Globals.ndim): print >> stdout, '\t', round(1./opt_freqs[i],5)
             
             #fitting_coeffs
-            print_message("\nFitting coefficients / Uncertainties", 6,92)
+            print_message("\nFitted coefficients / Uncertainties", 6,92)
             for j in range(Globals.ndim):
                 try:
                     da = sqrt(cov[j+Globals.n_sets][j+Globals.n_sets])
@@ -662,19 +980,7 @@ if __name__ == '__main__':
                 except:
                     print "Value error"
                     pass
-            
-            print_message("\nPhases / Uncertainties",6,92)
-            for j in range(Globals.ndim): 
-                a,b = fitting_coeffs[j+Globals.n_sets], fitting_coeffs[j+Globals.ndim+Globals.n_sets]
-                Ph = atan(a/b)*180.0/pi
-                try:
-                    da, db = sqrt(cov[j+Globals.n_sets][j+Globals.n_sets]), \
-                             sqrt(cov[j+Globals.ndim+Globals.n_sets][j+Globals.ndim+Globals.n_sets])
-                    print "\tPh[",j,"]:", Ph, "+/-", (180./pi)*(abs((1.0/(1.0+(a/b)**2)/b))*da + abs((-a/(1.0+(a/b)**2)/b**2))*db)
-                except:
-                    print "Value error"
-                    pass
-                
+              
             #print offsets
             print_message("\nOffsets / Uncertainties",6,92)
             for i in range(Globals.n_sets):
@@ -691,17 +997,57 @@ if __name__ == '__main__':
                     print "\tset[ " + str(i), ']:', opt_state[Globals.ndim+i]
         
             #print "Negative log-likelihood:", -logL 
-            print_message("\nSpectral stats:",6,92)
+            print_message("\nSpectral stats:", 6, 92)
             print "\tJoint P statistic [logL-logL_0/logL_0]:",round(pwr, 5)
             print "\tlogL_0 (null-model):", Globals.logL_0
             print "\tlogL (model): " + str(logL)
             print "\tDlogL (model - null_model): " + str(-Globals.logL_0+logL)
+            print "\tBIC:", -2.0*logL + (3*Globals.ndim + 2*Globals.n_sets)*len(Globals.rvs_seq)
             print ""
             
             #compute and write on disk the fitted model
             FITTED_MODEL = multiset_model(opt_freqs, opt_jitters, fitting_coeffs)
+            
+           
+            if Globals.mcmc: 
+                print_message("\nEvaluating uncertainties in nonlinear parameters...", 6,35)
+                
+                try:
+                    import emcee
+                
+                except ImportError:
+                    print "emcee package must be installed on your computer"
+                    sys.exit()
+                
+                mcmc_dim = len(opt_state)
+                walkers = 32
+                #setting initial points
+                pos = opt_state + (opt_state * 1e-5*np.random.randn(walkers, mcmc_dim))
+                nwalkers, mcmc_dim = pos.shape
+                
+                sampler = emcee.EnsembleSampler(nwalkers, mcmc_dim, log_probability, args=())
+                sampler.run_mcmc(pos, 15000, progress=True);
+                
+                flat_samples = sampler.get_chain(discard=1000, thin=10, flat=True)
+                
+                means = np.mean(flat_samples, axis=0)
+                stds = np.std(flat_samples, axis=0)
+                #w --> P
+                lnLs = []
+                standard_samples = []
+                for j in range(len(flat_samples)):
+                    periods = [1./flat_samples[j][i] for i in range(Globals.ndim)]
+                    periods.sort()
+                    jitters = [abs(flat_samples[j][i]) for i in range(Globals.ndim,len(flat_samples[0]))]
+                    lnLs.append([j,log_probability(flat_samples[j]) - Globals.logL_0, build_model(flat_samples[j])])
+                    line = periods + jitters
+                    standard_samples.append(line)
+                    
+                mgls_io.write_file('samples_logL.tmp', lnLs, ' ', '')
+                mgls_io.write_file('samples.tmp', standard_samples, ' ', '')
+                
    
-
+            
         except:
             sys.stdout, sys.stderr = stdout, stderr
             raise
