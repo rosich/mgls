@@ -45,7 +45,7 @@ import ConfigParser
 import multiprocessing as mp
 import getopt
 sys.path.append('./bin')
-import mGLS, mMGLS, mMGLS_AR
+import mMGLS
 import time as tme
 sys.path.append('./src')
 from mgls_lib import *
@@ -423,14 +423,7 @@ if __name__ == '__main__':
             #logL 1-D plot
             freqs, pwr, max_pow, fitting_coeffs = gls_1D()
             
-            for i in range(len(freqs)):
-                freqs_out.append([i,i,pwr[i]])
-            
-            mgls_io.write_file('gls_freqs.dat', freqs_out, ' ', '')
-            
-            #print "std(data):", np.std(Globals.rvs_seq)
-            
-        #bootstrapping stats
+            #bootstrapping stats
             if Globals.bootstrapping:
                 logL_0 = Globals.logL_0
                 #copy data 
@@ -440,7 +433,7 @@ if __name__ == '__main__':
                 #print fap(bootstrapping_stats, max_pow[1])
                 print "Bootstrapping..."
                 max_peaks = mgls_mc.bootstrapping_1D(Globals.n_bootstrapping)
-                mgls_io.write_file_onecol('FAP_' + str(int(random.uniform(0,10000))) + '.dat', max_peaks, ' ', '')
+                #mgls_io.write_file_onecol('FAP_' + str(int(random.uniform(0,10000))) + '.dat', max_peaks, ' ', '')
 
                 #print np.mean(max_peaks), np.std(max_peaks), np.mean(max_peaks) + 3.*np.std(max_peaks)
                 fap_thresholds = fap_levels(max_peaks)
@@ -457,7 +450,7 @@ if __name__ == '__main__':
             print "Peaks found:", len(peaks)
             for jj in range(len(peaks)): #higher peaks
                 file_out.append([0,0, peaks[jj][1]])
-            mgls_io.write_file('gls_peaks.dat', file_out, ' ', '')
+            #mgls_io.write_file('gls_peaks.dat', file_out, ' ', '')
             
             periodogram = []
             for i in range(len(pwr)):
@@ -469,7 +462,6 @@ if __name__ == '__main__':
         except:
             sys.stdout, sys.stderr = stdout, stderr
             raise
-
 
     elif Globals.bidim_plot:
         """
