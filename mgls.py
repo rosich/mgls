@@ -931,7 +931,7 @@ if __name__ == '__main__':
                 jitters = [0.0 for iter in range(Globals.n_sets)]
       
             #optimize frequency tuple
-            opt_state = mgls_mc.run_MGLS(Globals.ncpus, N_CANDIDATES=56)
+            opt_state = mgls_mc.run_MGLS(Globals.ncpus, N_CANDIDATES=36)
             
             #compute coefficients and A matrix, given the optimal configuration        
             pwr, fitting_coeffs, A, logL = mgls_multiset(opt_state)
