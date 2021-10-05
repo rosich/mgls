@@ -5,11 +5,13 @@
 
 # Name:        gls_parallel.py
 
-# Purpose:     Multifrequency Lomb-Scargle RV data fitting
+# Purpose:     Multifrequency Lomb-Scargle data fitting
 #
 # Author:      Albert Rosich (rosich@ice.cat)
 #
 # Created:     2015/01/15
+
+# Last update: 2021/10/5
 
 #-----------------------------------------------------------------------------
 
