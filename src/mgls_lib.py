@@ -9,7 +9,7 @@ import scipy.optimize
 import multiprocessing as mp
 import ConfigParser
 sys.path.append('./bin')
-import mGLS, mMGLS, mMGLS_AR
+import mMGLS
 sys.path.append('./src')
 from EnvGlobals import Globals
 import mgls_io
