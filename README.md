@@ -13,7 +13,7 @@ Multidimensional Generalized Lomb-Scargle Periodogram
 
 ### Compile Fortran numerical modules (gfortran compiler must be installed on your system)
 
-    $ bash compile_fortran_modules.sh
+    $ bash compile_numerical_modules.sh
 
 #### General syntax
 
