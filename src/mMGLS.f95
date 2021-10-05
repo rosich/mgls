@@ -61,7 +61,7 @@ subroutine mdim_gls_multiset(times, rvs, errs, freqs, jitters, len_sets, coeffs,
     real ::  pi=acos(-1.0), t_ref = 0.0, errs_jitter(size(times))
     integer :: i, j, k, final, n_dim, n_sets, LS_INFO, pivot(2*size(freqs)+size(len_sets))
     integer :: init_times(size(len_sets)) 
-  
+     
     !number of datasets
     n_sets = size(len_sets)
     !total length of data (list of all datasets concatenated)
@@ -122,8 +122,11 @@ subroutine mdim_gls_multiset(times, rvs, errs, freqs, jitters, len_sets, coeffs,
     Ft = transpose(F)
     A = matmul(Ft,F)
     b = matmul(Ft,y_err)
+    !call sgemm('t','n',2*n_dim+n_sets,2*n_dim+n_sets,n_data,1.0,F,n_data,F,n_data,0.0,A,2*n_dim+n_sets)
+    !call sgemm('t','n',2*n_dim+n_sets,1,n_data,1.0,F,n_data,y_err,n_data,0,b,2*n_dim+n_sets)
+    
     !solves a system of linear equations A*X = B 
-    !call DPOTRS('L', n_dim, 1, A, n_dim, b, n_dim, LS_INFO)
+    !call SPOSV('U', 2*n_dim+n_sets, 1, A, 2*n_dim+n_sets, b, 2*n_dim+n_sets, LS_INFO)
     call SGESV(2*n_dim+n_sets, 1, A, 2*n_dim+n_sets, pivot, b, 2*n_dim+n_sets, LS_INFO)
     
     !fill output vector: fitting coeffs.
@@ -213,8 +216,10 @@ subroutine mdim_gls_multiset_trend(times, rvs, errs, freqs, jitters, len_sets, c
     Ft = transpose(F)
     A = matmul(Ft,F)
     b = matmul(Ft,y_err)
+    !call sgemm('t','n',2*n_dim+n_sets+1,2*n_dim+n_sets+1,n_data,1.0,F,n_data,F,n_data,0.0,A,2*n_dim+n_sets+1)
+    !call sgemm('t','n',2*n_dim+n_sets+1,1,n_data,1.0,F,n_data,y_err,n_data,0,b,2*n_dim+n_sets+1)
     !solves a system of linear equations A*X = B 
-    !call DPOTRS('L', n_dim, 1, A, n_dim, b, n_dim, LS_INFO)
+    !call SPOSV('U', 2*n_dim+n_sets+1, 1, A, 2*n_dim+n_sets+1, b, 2*n_dim+n_sets+1, LS_INFO)
     call SGESV(2*n_dim+n_sets+1, 1, A, 2*n_dim+n_sets+1, pivot, b, 2*n_dim+n_sets+1, LS_INFO)
     
     !fill output vector: fitting coeffs.

@@ -92,21 +92,33 @@ def _gls_instance_bootstrapping(n):
 
         #compute new jitters
         max_logL_0 = -np.inf
-        for _ in range(2):
+        for _ in range(1):
             Globals.logL_0 = logL_NullModel()
             if Globals.logL_0 > max_logL_0:
                 max_logL_0 = Globals.logL_0
       
         Globals.logL_0 = max_logL_0
         #compute GLS
-        Globals.ndim = 1
+        Globals.ndim = 0
         #freqs, pwr, max_pow = gls_1D()
         #if max_pow != 0:
         #   max_pows.append(max_pow)
         Globals.inhibit_msg = True
         
+        max_logL_0 = -np.inf
+        for _i in range(1):
+            #MC optimization
+            opt_state = run_MGLS(Globals.ncpus, N_CANDIDATES=4)
+            #compute coefficients and A matrix, given the optimal configuration        
+            pwr, fitting_coeffs, A, logL_0 = mgls_multiset(opt_state)
+            if logL_0 > max_logL_0:
+                max_logL_0 = logL_0
+                Globals.logL_0 = max_logL_0
+                
+        Globals.ndim = 1
+        
         max_logL = -np.inf
-        for _i in range(6):
+        for _i in range(1):
             #MC optimization
             opt_state = run_MGLS(Globals.ncpus, N_CANDIDATES=4)
             #compute coefficients and A matrix, given the optimal configuration        
@@ -114,15 +126,16 @@ def _gls_instance_bootstrapping(n):
             if logL > max_logL:
                 max_logL = logL
         
+        """
         if (max_logL - Globals.logL_0) > 15.0:
             print "logL > 15 found"
             data_ = zip(Globals.times_seq, Globals.rvs_seq, Globals.rv_errs_seq)
             mgls_io.write_file('_' + str(max_logL - max_logL_0) + '.dat', data_, ' ' , '')
-           
-        if max_logL - Globals.logL_0 > 0.0:
-            max_pows.append(max_logL - Globals.logL_0)
-            
-        q = (time.time() - t_0)
+        """   
+        #if max_logL - Globals.logL_0 > 0.0:
+        max_pows.append(max_logL - Globals.logL_0)
+
+        #q = (time.time() - t_0)
         chain = "\tIteration: " + str(_j) + "/" + str(n)
         sys.stdout.write('\r' + chain)
         sys.stdout.flush()
@@ -232,7 +245,7 @@ def compute_metropolis(state, beta, MAX_ITERATIONS, msgs):
         p_state = gen_modified_state_(s_state)
         #run MGLS
         p_pwr = fmgls_multiset(p_state)
-      
+        
         delta_pwr = p_pwr - s_pwr
         
         if delta_pwr < 0.0:
@@ -249,7 +262,7 @@ def compute_metropolis(state, beta, MAX_ITERATIONS, msgs):
             s_state = p_state[:]
             s_pwr = p_pwr
         iteration += 1
-
+   
     return s_state
 
 def optimal(n_dim, msgs, temp_steps, n_iter):
@@ -310,7 +323,7 @@ def parallel_optimal(instance):
     f_tuple = []
     for i in range(len(instance)):
         if Globals.ndim > 0:
-            f_tuple.append(optimal(Globals.ndim, msgs=False, temp_steps=35, n_iter=int(50*(Globals.ndim**1.35 + Globals.n_sets))))
+            f_tuple.append(optimal(Globals.ndim, msgs=False, temp_steps=35, n_iter=int(75*(Globals.ndim**1.35 + Globals.n_sets))))
         else: 
             f_tuple.append(optimal(Globals.ndim, msgs=False, temp_steps=15, n_iter=int(2*(Globals.n_sets))))
             
@@ -365,6 +378,7 @@ def parallel_optimization_multiset(ncpus, N_CANDIDATES):
     
     try:
         parallel_opt_states = pool.map_async(parallel_optimal, instances).get(9999999)
+        Globals.parallel_opt_states = parallel_opt_states 
     except KeyboardInterrupt:
         print ''
         print_message('Parallel pool killed. Bye!', index=3, color=31)
@@ -384,7 +398,7 @@ def parallel_optimization_multiset(ncpus, N_CANDIDATES):
     max_pow = np.inf
     #print "Instances created:", len(frequencies_optimal)
     best_candidates = []
- 
+
     for j in range(len(frequencies_optimal)):
         #parameter bounds only applies for algorithms SLSQP, 
         #param_bounds = [(frequencies_optimal[j][i]*0.95, frequencies_optimal[j][i]*1.05) for i in range(Globals.ndim)]
@@ -522,6 +536,7 @@ def noise_analysis(init_dim, opt_freqs_base, fitting_coeffs_base, opt_jitters_ba
     Globals.ndim = init_dim
     counter = 0
     histogram = []
+    periods= []
     NSAMPLES = 50
     
     rvs_seq, rv_errs_seq = copy.deepcopy(Globals.rvs_seq), copy.deepcopy(Globals.rv_errs_seq)
@@ -538,40 +553,48 @@ def noise_analysis(init_dim, opt_freqs_base, fitting_coeffs_base, opt_jitters_ba
             is_model = gen_synthetic_model(1./opt_freqs_base, fitting_coeffs_base, opt_jitters_base)
             #model_0
             max_logL_0 = -np.inf
-            for k in range(4):
-                opt_state_0 = parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=4)
+            for k in range(2):
+                opt_state_0 = parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=112)
                 #compute coefficients and A matrix, given the optimal configuration        
                 pwr, fitting_coeffs, A, logL_0 = mgls_multiset(opt_state_0)
           
                 if logL_0 > max_logL_0:
                     max_logL_0 = logL_0
+                    opt_P_0 = opt_state_0
                     Globals.logL_0 = max_logL_0
            
             #model 
             max_logL = -np.inf
             Globals.ndim += 1
-            for k in range(4):
-                opt_state = parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=4)
+            for k in range(2):
+                opt_state = parallel_optimization_multiset(Globals.ncpus, N_CANDIDATES=112)
                 #compute coefficients and A matrix, given the optimal configuration        
                 pwr, fitting_coeffs, A, logL = mgls_multiset(opt_state)
-            
+                
                 if logL > max_logL:
                     max_logL = logL
-            #print max_logL_0, max_logL
+                    opt_P = opt_state
+            
+            
+            for jj in range(Globals.ndim): 
+                periods.append(1./opt_P[:Globals.ndim][jj]) 
+                
+            print [1./opt_P[jj] for jj in range(Globals.ndim)]
             
             DLog = max_logL - max_logL_0
             if DLog < 0.0: DLog = 0.0
             
             if (max_logL - Globals.logL_0) > 15.0:
-                print "logL > 15 found"
-                
-                data_ = zip(Globals.times_seq, Globals.rvs_seq, Globals.rv_errs_seq)
-                mgls_io.write_file('_' + str(max_logL - Globals.logL_0) + '.dat', data_, ' ' , '')
+                pass
+                #print "logL > 15 found"
+                #data_ = zip(Globals.times_seq, Globals.rvs_seq, Globals.rv_errs_seq)
+                #mgls_io.write_file('_' + str(max_logL - Globals.logL_0) + '.dat', data_, ' ' , '')
             
+            #print DLog
             histogram.append(DLog)
             counter += 1
             
-            if counter % 5 == 0:
+            if counter % 100 == 0:
                 sys.stdout.write('\r\t                             ')
                 sys.stdout.write( '\r\t' + " >> Completed " + str(round((100.*float(counter)/float(NSAMPLES)),2)) + ' %' )
                 sys.stdout.flush()
@@ -589,8 +612,9 @@ def noise_analysis(init_dim, opt_freqs_base, fitting_coeffs_base, opt_jitters_ba
     #histogram = np.array(histogram)
     sys.stdout.write('\r                              ')
     sys.stdout.write('\n')
-    mgls_io.write_file_onecol('H_'+ str(Globals.ndim) + '_' + str(time.time()) + '.dat', histogram, ' ', '')
-
+    mgls_io.write_file_onecol('H_testing_'+ str(Globals.ndim) + '_' + str(time.time()) + '.dat', histogram, ' ', '')
+    mgls_io.write_file_onecol('P_'+ str(Globals.ndim) + '_' + str(time.time()) + '.dat', periods, ' ', '')
+    
     print "DlogL max.", max(histogram)
     
     return np.percentile(histogram, 90.0), np.percentile(histogram, 99.0), np.percentile(histogram, 99.9)

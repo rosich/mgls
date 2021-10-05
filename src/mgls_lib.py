@@ -14,6 +14,7 @@ sys.path.append('./src')
 from EnvGlobals import Globals
 import mgls_io
 import time
+from numpy.linalg import inv
 #import mgls_mc
 #from numba import jit
 
@@ -57,11 +58,12 @@ def logL_NullModel():
     
     return Globals.logL_0
 
-def plot(t, y, t2, y2, err, max_peak, fap_thresholds, peaks=None):
+def plot(t, y, t2, y2, err, max_peak, fap_thresholds, coeffs, peaks=None):
     """
     """
     try:
         import matplotlib.pyplot as plt
+        from matplotlib import cm
     except ImportError:
         print "python-matplotlib package must be installed on your box"
              
@@ -120,7 +122,7 @@ def plot(t, y, t2, y2, err, max_peak, fap_thresholds, peaks=None):
         plt.rc('font', serif='Helvetica Neue')
         plt.rcParams.update({'font.size': 15.0})
         
-        fig, ax1 = plt.subplots(figsize=(14,4.3))
+        fig, ax1 = plt.subplots(figsize=(15,4.3))
         plt.subplots_adjust(left=0.07, right=0.96, top=0.9, bottom=0.15, hspace=0.3)
     
         #ax1.plot(1./t, y, '-r', color='black', linewidth=0.6)
@@ -137,20 +139,37 @@ def plot(t, y, t2, y2, err, max_peak, fap_thresholds, peaks=None):
         y2, err = y2.tolist(), err.tolist()
         #LaTeX env.
         plt.rc('font', serif='Helvetica Neue')
-        plt.rcParams.update({'font.size': 16.0})
+        plt.rcParams.update({'font.size': 19.0})
         
-        fig, ax1 = plt.subplots(figsize=(14,5.5))
-        plt.subplots_adjust(left=0.07, right=0.96, top=0.85, bottom=0.15, hspace=0.3)
-    
-        ax1.plot(t, y, '-r', color='steelblue', linewidth=1.0)
+        fig, ax1 = plt.subplots(figsize=(14,6.5))
+        plt.subplots_adjust(left=0.07, right=0.92, top=0.85, bottom=0.15, hspace=0.3)
+
+        Ks = []
+        for ii in range(len(peaks)):
+            a,b = peaks[ii][2][1], peaks[ii][2][2]
+            Ks.append(sqrt(a**2 + b**2))
+        
+        Ks_ = []
+        for ii in range(len(coeffs)):
+            a,b = coeffs[ii][Globals.n_sets], coeffs[ii][Globals.n_sets+1]
+            Ks_.append(sqrt(a**2 + b**2))
+            
+        sc = ax1.scatter(peaks[:,0], peaks[:,1], c=cm.rainbow(Ks), edgecolor=cm.rainbow(Ks), s=30)
         #ax1.fill_between(t, y, min(y), facecolor='steelblue', color='steelblue', alpha=0.99)
         ax1.set_xlim((t[0],t[-1]))
+        #fig.colorbar(sc, ax1=ax1)
+        ax3 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+        ax3.set_ylabel(r'Amplitude', color='gray', rotation='vertical',fontsize=15, fontweight='bold') 
+        ax3.plot(t, Ks_, '-', color='darkgray', linewidth=1.0, zorder=-128)
+        ax1.tick_params(axis='y', labelcolor='steelblue')
+        ax3.tick_params(axis='y', labelcolor='dimgray')
+        ax1.plot(t, y, '-', color='steelblue', linewidth=1.0, zorder=-128)
         
         try:
             ax2 = ax1.twiny()
             #period ticks
             ax2.set_xlim(ax1.get_xlim())
-        
             periods = np.array(1./np.linspace( t[0], t[-1], 9))
             periods = [base_round(period) for period in periods]
             #new_tick_locations = ax1.get_xticks()
@@ -165,9 +184,14 @@ def plot(t, y, t2, y2, err, max_peak, fap_thresholds, peaks=None):
         
         ax1.minorticks_on() 
         
-        ax1.set_ylabel(r'$\Delta$lnL', rotation='vertical',fontsize=15, fontweight='bold')
+        ax1.set_ylabel(r'$\Delta$lnL', color='steelblue', rotation='vertical', fontsize=15, fontweight='bold')
         ax1.set_xlabel(r'Frequency (d$^{-1}$)', fontsize=15, fontweight='bold')
-        ax1.set_ylim((min(y),1.15*max(y)))  
+        
+        ax1.set_ylim((min(y), 1.75*max(y)))  
+        #ax1.set_ylim((min(y),48.))
+        
+        ax3.set_ylim((2.75*max(Ks_), min(Ks_)))
+        #ax3.set_ylim((4.,0.))
         #ax1.set_ylim((min(y),45.0))
     
     if fap_thresholds != []:
@@ -178,40 +202,78 @@ def plot(t, y, t2, y2, err, max_peak, fap_thresholds, peaks=None):
     else:
         print "No FAP levels"
     
-    ax1.plot(peaks[:,0], peaks[:,1], 'ro', mfc='none')
+    #ax1.plot(peaks[:,0], peaks[:,1], 'ro', mfc='none')
     
     y_range = max(y) - min(y)
     x_range = max(t) - min(t)
+    
     pv = 0.06*y_range
     ph = 0.01*x_range
     
-    for j_ in range(1):
+    for j_ in range(2):
         ax1.annotate(str(1./peaks[j_][0])[:7], xy=(peaks[j_][0], peaks[j_][1]),
                      xytext=(ph+peaks[j_][0], pv+peaks[j_][1]), rotation=0)
     
-    #ax2.set_xscale('log')
+    #ax3.set_yscale('log')
+
+    #ax1.set_ylim((min(y), 120.0))
+    
+    
     """
     ax1.axvline(1.25,linestyle='-.',color='red')
-            )
-    ax1.annotate('4.91d', xy=(4.91, 0.08), xytext=(5.5, 0.2)
-            )
-
-    #ax1.axhline(max_peak[1],linestyle='-.',color='0.80')
-
-    #Anotations
-    ax1.annotate('8.6d', xy=(8.6, 0.4), xytext=(8.0, 0.5)
             )
     """ 
     
     plt.show()
 
-def peak_counter(freqs, pwrs):
+def peak_counter(freqs, pwrs, coeffs):
     """
     """
+    def derivative(freqs, pwrs):
+        """
+        """
+        dpow = []
+        for i in range(1,len(pwrs)-1):
+            d = (pwrs[i] - pwrs[i-1])/(freqs[i] - freqs[i-1])
+            dpow.append([freqs[i], d])
+        
+        return dpow
+    
     peaks = []
+
+    #maxima
     for i in range(1,len(pwrs)-1):
         if pwrs[i-1] < pwrs[i] > pwrs[i+1]:
-            peaks.append([freqs[i], pwrs[i]])
+            peaks.append([freqs[i], pwrs[i], coeffs[i]])
+    """
+    #minima
+    for i in range(1,len(pwrs)-1):
+        if pwrs[i-1] > pwrs[i] < pwrs[i+1]:
+            peaks.append([freqs[i], pwrs[i], coeffs[i]])
+
+    D_spec = np.array(derivative(freqs, pwrs))
+    f_D_spec = D_spec[:,1]
+    D_spec_2 = np.array(derivative(freqs, f_D_spec))
+    f_D_spec_2 = D_spec_2[:,1]
+    
+    mgls_io.write_file('derivative.dat', D_spec, ' ', '')
+    mgls_io.write_file('derivative_2.dat', D_spec_2, ' ', '')
+    
+    peaks_2 = []
+    #detect extremals via derivative
+    for i in range(1,len(D_spec)):
+        if f_D_spec[i-1]*f_D_spec[i] < 0.0:
+            peaks.append([freqs[i], pwrs[i], coeffs[i]])
+    
+    peaks_3 = []
+    #detect inflection points
+    for i in range(1,len(D_spec_2)):
+        if f_D_spec_2[i-1]*f_D_spec_2[i] < 0.0:
+            peaks.append([freqs[i], pwrs[i], coeffs[i]])
+    """
+    
+    #print "Null derivatives:", len(peaks_2)
+    #print "Null 2nd derivatives:", len(peaks_3)
     
     #peaks = np.array(peaks)
     #sort peaks by power
@@ -290,37 +352,56 @@ def fap_levels(bootstrapping_stats):
 def mgls_multiset_jitter_search(freq):
     """
     """
+    def flatten(_2d_list):
+        flat_list = []
+        # Iterate through the outer list
+        for element in _2d_list:
+            if type(element) is list:
+                # If the element is of type list, iterate through the sublist
+                for item in element:
+                    flat_list.append(item)
+            else:
+                flat_list.append(element)
+                
+        return flat_list
+    
     def jitter_search(jitters):
         """
         """
-        non_linear_params = []
-        non_linear_params.append(freq)
+        non_linear_params = [freq]
         non_linear_params.extend(jitters)
+        non_linear_params = flatten(non_linear_params)
         pwr, fitting_coeffs, A, logL = mgls_multiset(non_linear_params)
         
         return -logL
     
     jitter_0 = Globals.opt_jitters_0
+
     res = scipy.optimize.minimize(jitter_search, jitter_0, 
                                   method='SLSQP', tol=1e-4, options={'disp': False})
-    opt_jitters = res.x
-    non_linear_params = []
-    non_linear_params.append(freq)
-    non_linear_params.extend(opt_jitters)
     
+    opt_jitters = res.x
+    non_linear_params = [freq]
+    non_linear_params.extend(opt_jitters)
+    non_linear_params = flatten(non_linear_params)
     pwr, fitting_coeffs, A, logL = mgls_multiset(non_linear_params)
 
     return pwr, fitting_coeffs, A, logL
-
+ 
 def gls_1D():
     """
     """
     Globals.ndim = 1  #unidimensional GLS
     
     f_MAX = max(1./Globals.period_range[1], 1./Globals.period_range[0])
-    n_points = 15*abs(Globals.period_range[1] - Globals.period_range[0])*f_MAX
-    
+    n_points = 5.*abs(Globals.period_range[1] - Globals.period_range[0])*f_MAX
     freqs = np.linspace(1./Globals.period_range[1], 1./Globals.period_range[0], n_points)
+    
+    #freqs = np.random.uniform(1./Globals.period_range[1], 1./Globals.period_range[0], 49*10)
+    print "Calculating", len(freqs), "frequencies"
+    #TimeSpan = Globals.times_seq[-1] - Globals.times_seq[0]
+    #N_points = len(Globals.times_seq)
+    #freqs = [2.*pi*i/TimeSpan for i in range(int(N_points/2))]
     
     non_linear_params = [0.0]
     if Globals.jitter:
@@ -328,6 +409,7 @@ def gls_1D():
     
     non_linear_params = np.array(non_linear_params)
     DlogLs = []
+    coeffs = []
     max_DlogL = -np.inf
     for i in range(len(freqs)):
         if freqs[i] == non_linear_params[0]:
@@ -342,16 +424,16 @@ def gls_1D():
         DlogL = logL - Globals.logL_0
         if DlogL < 0.0: DlogL = 0.0
         DlogLs.append(DlogL)
+        coeffs.append(fitting_coeffs)
         #find the peak
         if DlogL > max_DlogL:
             max_DlogL = DlogL
     
-    return freqs, DlogLs, max_DlogL
+    return freqs, DlogLs, max_DlogL, coeffs
         
 def covariance_matrix(sys_matrix):
     """calculate the covariance matrix for params estimation
     """
-    from numpy.linalg import inv
     Cov = inv(sys_matrix)
   
     return Cov
@@ -398,7 +480,15 @@ def conf_init(conf_file):
         sys.exit()
     else:
         return conf_file_Object
-        
+
+def chi2_gls(freqs):
+    """
+    """
+    chi2 = mMGLS.chi2(Globals.time, Globals.rv, Globals.rv_err, Globals.time[0], freqs, fitting_coeffs)
+    chi2_0 = mMGLS.chi2_0(Globals.rv, Globals.rv_err)
+     
+    return (chi2_0 - chi2)/chi2_0
+     
 def mgls(freqs):
     """
     """
@@ -526,6 +616,7 @@ def mgls_multiset(non_linear_params):
     """
     freqs = non_linear_params[:Globals.ndim]
     jitters = non_linear_params[Globals.ndim:]
+    
     #fit linear params
     if Globals.linear_trend:
         fitting_coeffs, A_matrix = mMGLS.mdim_gls_multiset_trend(Globals.times_seq, Globals.rvs_seq, Globals.rv_errs_seq, freqs, jitters, Globals.len_sets)
@@ -539,7 +630,7 @@ def mgls_multiset(non_linear_params):
 
     #fitting coeffs for each dataset
     fitting_coeffs_set = np.array(fitting_coeffs[Globals.n_sets-1:])
-    
+
     logL = 0.0
     for i in range(Globals.n_sets):
         fitting_coeffs_set[0] = fitting_coeffs[i] #append constant
@@ -549,10 +640,10 @@ def mgls_multiset(non_linear_params):
         inv_sigma2 = 1.0/(Globals.rv_errs[i]**2.0 + jitters[i]**2.0)
         #add logL for dataset (i)
         logL += -0.5*(np.sum(((Globals.rvs[i] - model)**2.0)*inv_sigma2 + np.log(2.0*np.pi) - np.log(inv_sigma2))) 
-
+        
     #spectral power   
     pwr = (Globals.logL_0 - logL) / Globals.logL_0
- 
+
     return pwr, fitting_coeffs, A_matrix, logL
 
 def fmgls_multiset(freqs):
@@ -643,7 +734,7 @@ def load_multiset_data():
     #print ttable (if appliable)
     if ttable:
         TABLE_DATA = []
-        TABLE_DATA.append(['Data set name (full path not shown)', 'Data points', 'Timespan', 'Mean sep.', 'logL (data)'])
+        TABLE_DATA.append(['Dataset name (full path not shown)', 'Data points', 'Timespan', 'Mean sep.', 'logL (data)'])
         for s in range(Globals.n_sets):
             TABLE_DATA.append([str(Globals.dataset_names[s]), str(DATA[s][0]), str(round(DATA[s][1],5)), str(round(DATA[s][2],5)), str(round(DATA[s][3],5))])
         
@@ -666,7 +757,7 @@ def load_multiset_data():
     Globals.rv_errs_seq = np.array(Globals.rv_errs_seq)
     
 def gen_synthetic_model(periods, fitting_coeffs, opt_jitters_base):
-    """inject a givern model to a time base
+    """create a synthetic model 
     """
     aS, bS = [], []
     linear_trend = 0.0
@@ -680,13 +771,16 @@ def gen_synthetic_model(periods, fitting_coeffs, opt_jitters_base):
 
     rvs_concat = []
     rv_errs_concat = []
+    phi = 0.0
+    X_pre = 0.0
     for k in range(Globals.n_sets):
         model = []
         #offset
         c = fitting_coeffs[k]
         for i in range(len(Globals.times[k])):
-            sigma = sqrt(Globals.rv_errs[k][i]**2 + opt_jitters_base[k]**2)
-            noise = random.gauss(0.0, sigma)
+            sigma = sqrt(Globals.rv_errs[k][i]**2 )#+ opt_jitters_base[k]**2)
+            noise = random.gauss(0.0, sigma) + phi*X_pre
+            X_pre = noise
             y = 0.0
             if len(periods) > 0:
                 for j in range(len(periods)):
@@ -758,7 +852,7 @@ def compute_residuals(model):
                 res.append([Globals.times[0][i], Globals.rvs[0][i] - model[j][1], Globals.rv_errs[0][i] ])
     
     mgls_io.write_file('residuals.dat', res, ' ', '')
-        
+  
 def multiset_model(opt_freqs, opt_jitters, fitting_coeffs):
     """model
     """ 
@@ -773,6 +867,31 @@ def multiset_model(opt_freqs, opt_jitters, fitting_coeffs):
             else:
                 data_file.append( [Globals.times[s][j], Globals.rvs[s][j]-offset, Globals.rv_errs[s][j]] )
         mgls_io.write_file('offset_' + str(s) + '.dat', data_file, ' ', '')
+        
+        #residuals corresponding to dataset
+        data_file_res = []
+        
+    
+        for j in range(len(Globals.times[s])):
+            #model
+            t = Globals.times[s][j]
+            y_model = 0.0
+            if Globals.ndim > 0:
+                for k in range(Globals.n_sets, len(fitting_coeffs)):
+                    if k >= Globals.n_sets and k < Globals.ndim + Globals.n_sets:
+                        y_model += fitting_coeffs[k]*cos(2.0*pi*(t-Globals.times[0][0])*opt_freqs[k-Globals.n_sets])
+                    elif (k >= (Globals.ndim + Globals.n_sets)) and (k < (2*Globals.ndim+Globals.n_sets)):
+                        y_model += fitting_coeffs[k]*sin(2.0*pi*(t-Globals.times[0][0])*opt_freqs[k-(2*Globals.ndim+Globals.n_sets)])    
+                    elif k == (2*Globals.ndim + Globals.n_sets):
+                        y_model += fitting_coeffs[k]*(t-Globals.times[0][0])
+
+            if Globals.jitter:
+                data_file_res.append( [Globals.times[s][j], Globals.rvs[s][j]-offset-y_model, sqrt(Globals.rv_errs[s][j]**2)] ) 
+            else:
+                data_file_res.append( [Globals.times[s][j], Globals.rvs[s][j]-offset-y_model, Globals.rv_errs[s][j]] )
+    
+        mgls_io.write_file('residuals_' + str(s) + '.dat', data_file_res, ' ', '')
+        
         
         t_0, t_f = Globals.times[s][0] - 10.0, Globals.times[s][-1] + 10.0
         for i in range(12*int(t_f-t_0)):

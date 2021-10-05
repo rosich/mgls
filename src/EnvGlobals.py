@@ -29,5 +29,9 @@ class Globals(object):
     help = False
     inPeriods = False
     log_scale = False
+    multidim_significances = False
+    testing = False
     mcmc = False
-    
+    grid_search = False
+    chi2 = False
+
