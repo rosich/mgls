@@ -52,7 +52,6 @@ from mgls_lib import *
 import mgls_io
 import mgls_mc
 import mgls_bootstrapping
-import mgls_zk
 import mgls_genetic
 from EnvGlobals import Globals
 import scipy.optimize
