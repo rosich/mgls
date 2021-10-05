@@ -25,7 +25,8 @@ Multidimensional Generalized Lomb-Scargle Periodogram
     --jitter            :: fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2) [in units of data file third column].
     --period            :: [to be used with gls option] plot GLS periodogram in period log-scale.
     --ndim=             :: number of signals to be fitted.
-    --linear_trend      :: fit a linear trend simultaneously.        
+    --linear_trend      :: fit a linear trend simultaneously.  
+    --bootstrapping=    :: perform a given number of bootstrap samples to set 10%, 1% and 0.1% FAP levels.
 
 #### Multiset 
 MGLS admits multiple input data sets. The computation yelds in fitting an additional offset parameter (and jitter) for each set which optimizes the overall fit. The datasets could be either different instruments or distinct observational epochs that need to be treated separately. In this case the syntax is: (regular expresions are allowed)
@@ -33,7 +34,7 @@ MGLS admits multiple input data sets. The computation yelds in fitting an additi
     ./mgls.py <data_file_path_1>  <data_file_path_2>  <data_file_path_n> --option_1 --option_2 --option_n...
 
 #### MGLS Principles of working
-MGLS is a new approach for detecting multiplanetary systems by simultaneous fitting of n-tuple of circular orbits.  
+MGLS is an approach for detecting multiplanetary systems by simultaneous fitting of n-tuple of sinusoidal functions.  
 
 ### Examples
 
