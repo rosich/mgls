@@ -23,7 +23,6 @@ Multidimensional Generalized Lomb-Scargle Periodogram
     --gls               :: compute and plot unidimensional Generalized Lomb-Scargle periodogram.
     --pmin= / --pmax=   :: set limits in periods to be explored [in units of data file first column]. Prestablished values are 1.5-10000.
     --jitter            :: fit additional jitter (s) in quadrature (e^2 = sigma^ + s^2) [in units of data file third column].
-    --period            :: [to be used with gls option] plot GLS periodogram in period log-scale.
     --ndim=             :: number of signals to be fitted.
     --linear_trend      :: fit a linear trend simultaneously.  
     --bootstrapping=    :: perform a given number of bootstrap samples to set 10%, 1% and 0.1% FAP levels.
@@ -40,7 +39,7 @@ MGLS is an approach for detecting multiplanetary systems by simultaneous fitting
 
 #### Simulated data
 ##### 1-GLS
-In folder ./data/synth_hexa_model.dat there is a simulated time series containing 6 signals, in a 240 points file (BJD, RV, RV_err) 
+In folder ./data/synth_hexa_model.dat there is a simulated time-series containing 6 signals, in a 240 points file (e.g. {BJD, RV, RV_err}) 
 
 In order to compute genuine GLS periodogram (with matplotlib graphical output)
 
@@ -54,63 +53,78 @@ To run MGLS (fitting multiple frequencies simultaneously) the dimensionality nee
     
 Ouput:
 
+                                               
+       ███╗   ███╗ ██████╗ ██╗     ███████╗   
+       ████╗ ████║██╔════╝ ██║     ██╔════╝   
+       ██╔████╔██║██║  ███╗██║     ███████╗   
+       ██║╚██╔╝██║██║   ██║██║     ╚════██║   
+       ██║ ╚═╝ ██║╚██████╔╝███████╗███████║   
+       ╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚══════╝   
+     MULTIDIMENSIONAL GENERALIZED LOMB-SCARGLE      
+         Albert Rosich (rosich@ice.cat)             
 
-        ┌Dataset summary──────────────────────┬─────────────┬────────────┬───────────┬─────────────┐
-        │ Data set name (full path not shown) │ Data points │ Timespan   │ Mean sep. │ logL (data) │
-        ├─────────────────────────────────────┼─────────────┼────────────┼───────────┼─────────────┤
-        │ 0/ synth_hexa_model.dat             │ 240         │ 2542.91478 │ 10.59548  │ -666.3606   │
-        └─────────────────────────────────────┴─────────────┴────────────┴───────────┴─────────────┘
 
-        Evaluating 0-model...
-                logL null model (data + jitter): -608.344674696
-                0-freq jitter(s):
-                        0/ 2.3055
+Detected CPUs / using CPUs: 4/4
 
-        Evaluating model...
-        Computing candidate frequency tuples...
-        Maximizing the candidates...
+Reading multiset data
 
-        Periods (d):
-                23.0582
-                97.24027
-                9.05554
-                179.53743
-                19.66723
-                1.14629
+┌Dataset summary─────────────────────┬─────────────┬────────────┬───────────┬─────────────┐
+│ Dataset name (full path not shown) │ Data points │ Timespan   │ Mean sep. │ logL (data) │
+├────────────────────────────────────┼─────────────┼────────────┼───────────┼─────────────┤
+│ 0/ synth_hexa_model.dat            │ 240         │ 2542.91478 │ 10.59548  │ -666.3606   │
+└────────────────────────────────────┴─────────────┴────────────┴───────────┴─────────────┘
+Max. jitter: 20.0
 
-        Fitting coefficients:
-                a[ 0 ]: -1.69258
-                a[ 1 ]: -0.659809
-                a[ 2 ]: 0.450278
-                a[ 3 ]: 1.09982
-                a[ 4 ]: -1.34973
-                a[ 5 ]: -0.492108
-                b[ 0 ]: -0.590401
-                b[ 1 ]: -0.816941
-                b[ 2 ]: -0.73112
-                b[ 3 ]: -0.728609
-                b[ 4 ]: -1.06838
-                b[ 5 ]: -0.756614
+Evaluating 0-model...                                                                                                                  
+        logL null model (data + jitter): -608.3446746953898
+        0-freq jitter(s):
+                0/ 2.3055
 
-        Amplitudes / Uncertainties
-                K[ 0 ]: 1.79259622732 +/- 0.234870072349
-                K[ 1 ]: 1.05011481604 +/- 0.261906614526
-                K[ 2 ]: 0.85865408891 +/- 0.256306518122
-                K[ 3 ]: 1.31927189397 +/- 0.262636874708
-                K[ 4 ]: 1.72139498255 +/- 0.265989614476
-                K[ 5 ]: 0.902571557908 +/- 0.256376972598
+Evaluating model...
+Computing candidate frequency tuples...
+Maximizing the candidates...
 
-        Offsets / Uncertainties
-                c[ 0 ]: 7.36772 +/- 0.129196569772
+Periods (au):
+        23.07071
+        9.05676
+        180.28757
+        6.02493
+        97.37801
+        18.64276
 
-        Jitters:
-                set[ 0 ]: 0.000220087673173
+Fitted coefficients / Uncertainties
+        a[ 0 ]: -1.7635815 +/- 0.198413952985
+        a[ 1 ]: 0.6723117 +/- 0.19943871229
+        a[ 2 ]: 0.6816219 +/- 0.190459772326
+        a[ 3 ]: -0.23263012 +/- 0.197732571051
+        a[ 4 ]: -0.7047149 +/- 0.200529145816
+        a[ 5 ]: 0.02121678 +/- 0.197920853587
+        b[ 0 ]: -0.12779249 +/- 0.199068686121
+        b[ 1 ]: -1.1055146 +/- 0.19984888947
+        b[ 2 ]: -0.93733495 +/- 0.214947848676
+        b[ 3 ]: -0.79712594 +/- 0.197484140891
+        b[ 4 ]: -0.6766557 +/- 0.207615854684
+        b[ 5 ]: -1.2103678 +/- 0.205738421526
 
-        Spectral stats:
-                Joint power: 0.17755
-                logL_0 (no model): -608.344674696
-                logL (model): -500.330890497
-                DlogL (model vs. data): 108.013784199
+Amplitudes / Uncertainties
+        K[ 0 ]: 1.7682054968 +/- 0.21228226240280873
+        K[ 1 ]: 1.29389554632 +/- 0.2743813900288913
+        K[ 2 ]: 1.15896731809 +/- 0.28585766006225655
+        K[ 3 ]: 0.830377341498 +/- 0.24497089681917547
+        K[ 4 ]: 0.97697800987 +/- 0.2884408108013377
+        K[ 5 ]: 1.21055374112 +/- 0.20917568133349385
+
+Offsets / Uncertainties
+        c[ 0 ]: 7.28326 +/- 0.138816006399
+
+Jitter(s):
+        set[ 0 ]: 0.7855505310907221
+
+Spectral stats:
+        Joint P statistic [logL-logL_0/logL_0]: 0.13846
+        logL_0 (null-model): -608.3446746953898
+        logL (model): -524.1119736428393
+        DlogL (model - null_model): 84.2327010525505
 
 #### Observational data
 
