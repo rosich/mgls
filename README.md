@@ -47,11 +47,6 @@ In order to compute genuine GLS periodogram (with matplotlib graphical output)
     ./mgls.py ./data/synth_hexa_model.dat --gls --period --pmin=1.0 --pmax=3000 --jitter 
 ![Alt text](https://github.com/rosich/mgls/blob/master/hexa_gls.png "hexa")
 
-or plotting in frequency linear-scale
-     
-     ./mgls.py ./data/synth_hexa_model.dat --gls --pmin=1.0 --pmax=3000 --jitter 
-![Alt text](https://github.com/rosich/mgls/blob/master/hexa_gls_f.png "hexa_f")
-
 #### MGLS
 To run MGLS (fitting multiple frequencies simultaneously) the dimensionality needs to be indicated:
 
