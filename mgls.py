@@ -3,9 +3,9 @@
 #-----------------------------------------------------------------------------
 # Project:     Multidimensional Generalized Lomb-Scargle
 
-# Name:        gls_parallel.py
+# Name:        mgls.py
 
-# Purpose:     Multifrequency Lomb-Scargle RV data fitting
+# Purpose:     Multifrequency Lomb-Scargle periodogram
 #
 # Author:      Albert Rosich (rosich@ice.cat)
 #
@@ -465,8 +465,8 @@ if __name__ == '__main__':
     elif Globals.bidim_plot:
         """
         """ 
-        p_min_x, p_max_x = 4.6, 200.0
-        p_min_y, p_max_y = 4.6, 200.0
+        p_min_x, p_max_x = 4.8, 5.0
+        p_min_y, p_max_y = 10.0, 30.0
 
         
         freqs_0 = []
@@ -507,8 +507,8 @@ if __name__ == '__main__':
                      np.concatenate( (pylab.linspace(1./2.0, 1./100.0, 50),pylab.linspace(1./100.0, 1./10000.0, 950)) ) 
                      )
             """
-            aa, bb = pylab.meshgrid( pylab.linspace(1./p_min_x, 1./p_max_x, 1500), 
-                                     pylab.linspace(1./p_min_x, 1./p_max_y, 1500)
+            aa, bb = pylab.meshgrid( pylab.linspace(1./p_min_x, 1./p_max_x, 1200), 
+                                     pylab.linspace(1./p_min_x, 1./p_max_y, 1200)
                      )
             
             # fill a matrix with the function values
